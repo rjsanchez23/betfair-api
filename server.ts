@@ -167,9 +167,9 @@ app.get('/api/matches/:eventId/odds', async (req: Request, res: Response) => {
     const client = new BetfairClient(config);
     const footballService = new FootballService(client);
 
-    const match = await footballService.getMatchWithAllMarkets(eventId);
+    const odds = await footballService.getMatchOddsSimplified(eventId);
 
-    if (!match) {
+    if (!odds) {
       res.status(404).json({
         success: false,
         error: 'Match not found or no markets available',
@@ -179,7 +179,7 @@ app.get('/api/matches/:eventId/odds', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: match,
+      data: odds,
     });
   } catch (error) {
     console.error('Error fetching match odds:', error);

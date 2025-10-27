@@ -1,22 +1,122 @@
 import { BetfairClient } from './betfair-client';
 import { FootballMatch, FootballMarket, FootballRunner, MarketCatalogue, MarketBook } from '../types/betfair';
 
+// Estructura simplificada para las cuotas
+export interface SimplifiedOdds {
+  eventId: string;
+  eventName: string;
+  competition: string;
+  country: string;
+  startTime: string;
+  match_odds?: {
+    home: { back: number; lay: number };
+    draw: { back: number; lay: number };
+    away: { back: number; lay: number };
+  };
+  over_under_05?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_15?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_25?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_35?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_45?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_55?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_65?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_75?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_85?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+}
+
 export class FootballService {
   private client: BetfairClient;
 
   // ID de evento para fútbol en Betfair
   private readonly FOOTBALL_EVENT_TYPE_ID = '1';
 
-  // Tipos de mercado más comunes
-  private readonly MARKET_TYPES = {
-    MATCH_ODDS: 'MATCH_ODDS', // 1X2
-    OVER_UNDER: 'OVER_UNDER_25', // Más/Menos goles
-    BOTH_TEAMS_TO_SCORE: 'BOTH_TEAMS_TO_SCORE',
-    CORRECT_SCORE: 'CORRECT_SCORE',
-  };
+  // 5 grandes ligas europeas
+  private readonly TOP_5_LEAGUES = [
+    'Spanish La Liga',
+    'English Premier League',
+    'Italian Serie A',
+    'German Bundesliga',
+    'French Ligue 1'
+  ];
 
   constructor(client: BetfairClient) {
     this.client = client;
+  }
+
+  /**
+   * Filtrar solo partidos de las 5 grandes ligas
+   */
+  private filterTop5Leagues(matches: FootballMatch[]): FootballMatch[] {
+    return matches.filter(match =>
+      this.TOP_5_LEAGUES.some(league =>
+        match.competition.toLowerCase().includes(league.toLowerCase())
+      )
+    );
+  }
+
+  /**
+   * Convertir estructura compleja de Betfair a formato simplificado
+   */
+  private simplifyMatch(match: FootballMatch): SimplifiedOdds {
+    const simplified: SimplifiedOdds = {
+      eventId: match.eventId,
+      eventName: match.eventName,
+      competition: match.competition,
+      country: match.country,
+      startTime: match.startTime,
+    };
+
+    match.markets.forEach((market) => {
+      const marketName = market.marketName.toLowerCase();
+
+      // Match Odds (1X2)
+      if (marketName.includes('match odds')) {
+        const home = market.runners.find((r) => !r.runnerName.includes('Draw') && !r.runnerName.includes('The Draw'));
+        const draw = market.runners.find((r) => r.runnerName.includes('Draw'));
+        const away = market.runners.find((r) => !r.runnerName.includes('Draw') && r.selectionId !== home?.selectionId);
+
+        if (home && draw && away) {
+          simplified.match_odds = {
+            home: {
+              back: home.backPrices[0]?.price || 0,
+              lay: home.layPrices[0]?.price || 0,
+            },
+            draw: {
+              back: draw.backPrices[0]?.price || 0,
+              lay: draw.layPrices[0]?.price || 0,
+            },
+            away: {
+              back: away.backPrices[0]?.price || 0,
+              lay: away.layPrices[0]?.price || 0,
+            },
+          };
+        }
+      }
+
+      // Over/Under Goals
+      const ouMatch = marketName.match(/over\/under (\d+\.5) goals?/);
+      if (ouMatch) {
+        const goals = ouMatch[1].replace('.', '');
+        const over = market.runners.find((r) => r.runnerName.toLowerCase().includes('over'));
+        const under = market.runners.find((r) => r.runnerName.toLowerCase().includes('under'));
+
+        if (over && under) {
+          const key = `over_under_${goals}` as keyof SimplifiedOdds;
+          (simplified as any)[key] = {
+            over: {
+              back: over.backPrices[0]?.price || 0,
+              lay: over.layPrices[0]?.price || 0,
+            },
+            under: {
+              back: under.backPrices[0]?.price || 0,
+              lay: under.layPrices[0]?.price || 0,
+            },
+          };
+        }
+      }
+    });
+
+    return simplified;
   }
 
   async getFootballMatches(
@@ -130,12 +230,14 @@ export class FootballService {
 
   async getInPlayMatches(): Promise<FootballMatch[]> {
     // Solo devolver información básica, sin cuotas detalladas
-    return this.getFootballMatches(0, ['MATCH_ODDS'], true);
+    const matches = await this.getFootballMatches(0, ['MATCH_ODDS'], true);
+    return this.filterTop5Leagues(matches);
   }
 
   async getUpcomingMatches(hours: number = 24): Promise<FootballMatch[]> {
     // Solo devolver información básica, sin cuotas detalladas
-    return this.getFootballMatches(hours, ['MATCH_ODDS'], false);
+    const matches = await this.getFootballMatches(hours, ['MATCH_ODDS'], false);
+    return this.filterTop5Leagues(matches);
   }
 
   /**
@@ -175,6 +277,17 @@ export class FootballService {
 
     const matches = this.groupByEvent(marketCatalogues, marketBooks);
     return matches[0] || null;
+  }
+
+  /**
+   * Obtener cuotas simplificadas para un partido específico
+   * Devuelve formato flat: over_under_25: { over: {back, lay}, under: {back, lay} }
+   */
+  async getMatchOddsSimplified(eventId: string): Promise<SimplifiedOdds | null> {
+    const match = await this.getMatchWithAllMarkets(eventId);
+    if (!match) return null;
+
+    return this.simplifyMatch(match);
   }
 
   async getMatchOdds(eventId: string): Promise<FootballMarket | null> {
