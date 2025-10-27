@@ -13,22 +13,23 @@ app.use(cors());
 app.use(express.json());
 
 // Root endpoint
-app.get('/api', (req: Request, res: Response) => {
+app.get('/api', (_req: Request, res: Response) => {
   res.json({
     message: 'Betfair Exchange API Wrapper',
     version: '1.0.0',
     endpoints: {
-      '/api/matches': 'GET - Obtener partidos próximos (query params: hours, inPlay)',
-      '/api/matches/[eventId]': 'GET - Obtener detalles de un partido específico',
+      '/api/matches': 'GET - Obtener lista de partidos (query params: hours, inPlay)',
+      '/api/matches/:eventId': 'GET - Obtener info básica de un partido',
+      '/api/matches/:eventId/odds': 'GET - Obtener TODAS las cuotas (1X2 + Over/Under)',
       '/api/matches/live': 'GET - Obtener partidos en vivo',
       '/api/health': 'GET - Verificar estado de la API',
     },
-    documentation: 'Ver README.md y POSTMAN_EXAMPLES.md',
+    documentation: 'Ver README.md',
   });
 });
 
 // Health check
-app.get('/api/health', (req: Request, res: Response) => {
+app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -105,7 +106,7 @@ app.get('/api/matches/live', async (req: Request, res: Response) => {
   }
 });
 
-// Get match details by eventId
+// Get match details by eventId (info básica)
 app.get('/api/matches/:eventId', async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
@@ -144,6 +145,50 @@ app.get('/api/matches/:eventId', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch match details from Betfair',
+      message: errorMessage,
+    });
+  }
+});
+
+// Get all odds for a specific match (Match Odds + Over/Under)
+app.get('/api/matches/:eventId/odds', async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+
+    if (!eventId) {
+      res.status(400).json({
+        success: false,
+        error: 'eventId is required',
+      });
+      return;
+    }
+
+    const config = getBetfairConfigFromHeaders(req.headers);
+    const client = new BetfairClient(config);
+    const footballService = new FootballService(client);
+
+    const match = await footballService.getMatchWithAllMarkets(eventId);
+
+    if (!match) {
+      res.status(404).json({
+        success: false,
+        error: 'Match not found or no markets available',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: match,
+    });
+  } catch (error) {
+    console.error('Error fetching match odds:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch match odds from Betfair',
       message: errorMessage,
     });
   }
