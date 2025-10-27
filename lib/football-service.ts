@@ -129,11 +129,35 @@ export class FootballService {
   }
 
   async getInPlayMatches(): Promise<FootballMatch[]> {
-    return this.getFootballMatches(0, ['MATCH_ODDS'], true);
+    // Incluir Match Odds y todos los Over/Under disponibles
+    return this.getFootballMatches(0, [
+      'MATCH_ODDS',
+      'OVER_UNDER_05',
+      'OVER_UNDER_15',
+      'OVER_UNDER_25',
+      'OVER_UNDER_35',
+      'OVER_UNDER_45',
+      'OVER_UNDER_55',
+      'OVER_UNDER_65',
+      'OVER_UNDER_75',
+      'OVER_UNDER_85'
+    ], true);
   }
 
   async getUpcomingMatches(hours: number = 24): Promise<FootballMatch[]> {
-    return this.getFootballMatches(hours, ['MATCH_ODDS'], false);
+    // Incluir Match Odds y todos los Over/Under disponibles
+    return this.getFootballMatches(hours, [
+      'MATCH_ODDS',
+      'OVER_UNDER_05',
+      'OVER_UNDER_15',
+      'OVER_UNDER_25',
+      'OVER_UNDER_35',
+      'OVER_UNDER_45',
+      'OVER_UNDER_55',
+      'OVER_UNDER_65',
+      'OVER_UNDER_75',
+      'OVER_UNDER_85'
+    ], false);
   }
 
   async getMatchOdds(eventId: string): Promise<FootballMarket | null> {
