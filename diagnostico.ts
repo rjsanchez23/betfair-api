@@ -81,7 +81,7 @@ async function diagnosticar() {
     try {
       console.log('1. Intentando login...');
       const loginResponse = await axios.post(
-        'https://identitysso.betfair.com/api/login',
+        'https://identitysso.betfair.es/api/login',
         new URLSearchParams({
           username: credencial1,
           password: credencial2,

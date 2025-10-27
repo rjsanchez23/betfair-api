@@ -26,7 +26,7 @@ async function testBetfairConnection() {
   console.log('\n2. Probando login endpoint...');
   try {
     const response = await axios.post(
-      'https://identitysso.betfair.com/api/login',
+      'https://identitysso.betfair.es/api/login',
       'username=test&password=test',
       {
         headers: {
