@@ -3,8 +3,8 @@ import https from 'https';
 import { BetfairConfig, LoginResponse, MarketFilter, MarketCatalogue, MarketBook } from '../types/betfair';
 
 export class BetfairClient {
-  // Usar betfair.com (funciona desde cualquier región)
-  private readonly baseUrl = 'https://identitysso.betfair.com/api';
+  // URLs base según el dominio configurado
+  private readonly baseUrl: string;
   private readonly apiUrl = 'https://api.betfair.com/exchange/betting/json-rpc/v1';
   private readonly config: BetfairConfig;
   private sessionToken: string | null = null;
@@ -12,6 +12,13 @@ export class BetfairClient {
 
   constructor(config: BetfairConfig) {
     this.config = config;
+
+    // Determinar el endpoint de login según el dominio
+    // Por defecto usa .com, pero si la cuenta es .es debe usar identitysso-cert.betfair.es
+    const domain = process.env.BETFAIR_DOMAIN || 'com';
+    this.baseUrl = domain === 'es'
+      ? 'https://identitysso-cert.betfair.es/api'
+      : 'https://identitysso.betfair.com/api';
     // Si se proporciona un session token directamente, usarlo
     if (config.sessionToken) {
       this.sessionToken = config.sessionToken;
