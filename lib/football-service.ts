@@ -1,7 +1,18 @@
 import { BetfairClient } from './betfair-client';
 import { FootballMatch, FootballMarket, FootballRunner, MarketCatalogue, MarketBook } from '../types/betfair';
 
-// Estructura simplificada para las cuotas
+// Estructura simplificada para las cuotas con profundidad de mercado
+export interface PriceWithSize {
+  price: number;
+  size: number;
+}
+
+export interface RunnerOdds {
+  back: PriceWithSize[];
+  lay: PriceWithSize[];
+  lastPriceTraded?: number;
+}
+
 export interface SimplifiedOdds {
   eventId: string;
   eventName: string;
@@ -9,19 +20,19 @@ export interface SimplifiedOdds {
   country: string;
   startTime: string;
   match_odds?: {
-    home: { back: number; lay: number };
-    draw: { back: number; lay: number };
-    away: { back: number; lay: number };
+    home: RunnerOdds;
+    draw: RunnerOdds;
+    away: RunnerOdds;
   };
-  over_under_05?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_15?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_25?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_35?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_45?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_55?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_65?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_75?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
-  over_under_85?: { over: { back: number; lay: number }; under: { back: number; lay: number } };
+  over_under_05?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_15?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_25?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_35?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_45?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_55?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_65?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_75?: { over: RunnerOdds; under: RunnerOdds };
+  over_under_85?: { over: RunnerOdds; under: RunnerOdds };
 }
 
 export class FootballService {
@@ -78,16 +89,19 @@ export class FootballService {
         if (home && draw && away) {
           simplified.match_odds = {
             home: {
-              back: home.backPrices[0]?.price || 0,
-              lay: home.layPrices[0]?.price || 0,
+              back: home.backPrices.slice(0, 3),
+              lay: home.layPrices.slice(0, 3),
+              lastPriceTraded: home.lastPriceTraded,
             },
             draw: {
-              back: draw.backPrices[0]?.price || 0,
-              lay: draw.layPrices[0]?.price || 0,
+              back: draw.backPrices.slice(0, 3),
+              lay: draw.layPrices.slice(0, 3),
+              lastPriceTraded: draw.lastPriceTraded,
             },
             away: {
-              back: away.backPrices[0]?.price || 0,
-              lay: away.layPrices[0]?.price || 0,
+              back: away.backPrices.slice(0, 3),
+              lay: away.layPrices.slice(0, 3),
+              lastPriceTraded: away.lastPriceTraded,
             },
           };
         }
@@ -104,12 +118,14 @@ export class FootballService {
           const key = `over_under_${goals}` as keyof SimplifiedOdds;
           (simplified as any)[key] = {
             over: {
-              back: over.backPrices[0]?.price || 0,
-              lay: over.layPrices[0]?.price || 0,
+              back: over.backPrices.slice(0, 3),
+              lay: over.layPrices.slice(0, 3),
+              lastPriceTraded: over.lastPriceTraded,
             },
             under: {
-              back: under.backPrices[0]?.price || 0,
-              lay: under.layPrices[0]?.price || 0,
+              back: under.backPrices.slice(0, 3),
+              lay: under.layPrices.slice(0, 3),
+              lastPriceTraded: under.lastPriceTraded,
             },
           };
         }
