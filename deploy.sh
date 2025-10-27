@@ -7,13 +7,17 @@ set -e  # Salir si hay algún error
 
 echo "🚀 Iniciando despliegue en Raspberry Pi..."
 
-# Instalar dependencias
+# Instalar todas las dependencias (incluyendo devDependencies para compilar)
 echo "📦 Instalando dependencias..."
-npm install --production
+npm install
 
 # Compilar TypeScript
 echo "🔨 Compilando TypeScript..."
 npm run build
+
+# Limpiar devDependencies después de compilar (opcional, ahorra espacio)
+echo "🧹 Limpiando dependencias de desarrollo..."
+npm prune --production
 
 # Verificar que el archivo .env existe
 if [ ! -f .env ]; then
