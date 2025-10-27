@@ -29,7 +29,7 @@ fi
 # Verificar que PM2 está instalado
 if ! command -v pm2 &> /dev/null; then
     echo "📥 PM2 no está instalado. Instalando PM2 globalmente..."
-    npm install -g pm2
+    sudo npm install -g pm2
 fi
 
 # Detener la aplicación anterior si existe
@@ -47,6 +47,7 @@ pm2 save
 
 # Configurar PM2 para iniciar al arrancar el sistema
 echo "🔄 Configurando inicio automático..."
+echo "   Ejecuta el comando que PM2 te muestre a continuación (si lo solicita)"
 pm2 startup
 
 # Mostrar estado
