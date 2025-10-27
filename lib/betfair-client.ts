@@ -3,8 +3,8 @@ import https from 'https';
 import { BetfairConfig, LoginResponse, MarketFilter, MarketCatalogue, MarketBook } from '../types/betfair';
 
 export class BetfairClient {
-  // Usar siempre el dominio español (identitysso-cert.betfair.es)
-  private readonly baseUrl = 'https://identitysso-cert.betfair.es/api';
+  // Usar siempre el dominio español (identitysso.betfair.es)
+  private readonly baseUrl = 'https://identitysso.betfair.es/api';
   private readonly apiUrl = 'https://api.betfair.com/exchange/betting/json-rpc/v1';
   private readonly config: BetfairConfig;
   private sessionToken: string | null = null;
