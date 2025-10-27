@@ -24,7 +24,7 @@ export class BetfairClient {
     });
 
     this.axiosInstance = axios.create({
-      timeout: 30000,
+      timeout: 60000, // 60 segundos para Raspberry Pi
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -35,6 +35,8 @@ export class BetfairClient {
 
   async login(): Promise<string> {
     try {
+      console.log(`[Betfair] Intentando login en ${this.baseUrl}...`);
+
       const response = await this.axiosInstance.post<LoginResponse>(
         `${this.baseUrl}/login`,
         new URLSearchParams({
@@ -51,6 +53,7 @@ export class BetfairClient {
 
       if (response.data.status === 'SUCCESS' && response.data.token) {
         this.sessionToken = response.data.token;
+        console.log('[Betfair] Login exitoso');
         return this.sessionToken;
       }
 
@@ -60,6 +63,13 @@ export class BetfairClient {
         const responseData = error.response?.data;
         const statusCode = error.response?.status;
         const errorDetail = responseData ? JSON.stringify(responseData) : error.message;
+        console.error(`[Betfair] Login error: ${errorDetail}`);
+
+        // Si es timeout, dar más información
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          throw new Error(`Timeout al conectar con Betfair. Verifica tu conexión a internet o prueba con NODE_TLS_REJECT_UNAUTHORIZED=0`);
+        }
+
         throw new Error(`Betfair login error (${statusCode}): ${errorDetail}`);
       }
       throw error;
